@@ -42,6 +42,21 @@ func (e *ExternalScaler) IsActive(ctx context.Context, scaledObjectRef *ScaledOb
 	if numWaitToBeDeleted == nil {
 		return nil, fmt.Errorf("GameServerSet %s/%s has not inited", ns, name)
 	}
+
+	minNum := 0.0
+	minNumStr := scaledObjectRef.GetScalerMetadata()[NoneGameServerMinNumberKey]
+	if minNumStr != "" {
+		minNum, err = strconv.ParseFloat(minNumStr, 32)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if minNum > 0.0 {
+		return &IsActiveResponse{
+			Result: true,
+		}, nil
+	}
+
 	desireReplicas := currentReplicas - *numWaitToBeDeleted
 	return &IsActiveResponse{
 		Result: desireReplicas > 0,
@@ -197,7 +212,7 @@ func handleMinNum(totalNum, noneNum int, minNumStr string) (int, error) {
 		delta = math.Round(delta*100) / 100
 		minNum := int(math.Ceil(delta)) + noneNum
 		return minNum, nil
-	case n >= 1:
+	case n >= 1 || n == 0:
 		n = math.Ceil(n)
 		return int(n), nil
 	}
